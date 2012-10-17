@@ -1,0 +1,36 @@
+@model PowerTodoApp.Models.Issue
+
+@* This partial view defines form fields that will appear when creating and editing entities *@
+
+<div class="editor-label">
+    @Html.LabelFor(model => model.Title)
+</div>
+<div class="editor-field">
+    @Html.EditorFor(model => model.Title)
+    @Html.ValidationMessageFor(model => model.Title)
+</div>
+
+<div class="editor-label">
+    @Html.LabelFor(model => model.Owner)
+</div>
+<div class="editor-field">
+    @Html.EditorFor(model => model.Owner)
+    @Html.ValidationMessageFor(model => model.Owner)
+</div>
+
+<div class="editor-label">
+    @Html.LabelFor(model => model.Content)
+</div>
+<div class="editor-field">
+    @Html.EditorFor(model => model.Content)
+    @Html.ValidationMessageFor(model => model.Content)
+</div>
+
+<div class="editor-label">
+    @Html.LabelFor(model => model.Priority)
+</div>
+<div class="editor-field">
+    @Html.EditorFor(model => model.Priority)
+    @Html.ValidationMessageFor(model => model.Priority)
+</div>
+

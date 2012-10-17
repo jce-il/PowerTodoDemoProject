@@ -1,0 +1,53 @@
+@model IEnumerable<PowerTodoApp.Models.Issue>
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<table>
+    <tr>
+        <th></th>
+        <th>
+            Title
+        </th>
+        <th>
+            Owner
+        </th>
+        <th>
+            Content
+        </th>
+        <th>
+            Priority
+        </th>
+    </tr>
+
+@foreach (var item in Model) {
+    <tr>
+        <td>
+            @Html.ActionLink("Edit", "Edit", new { id=item.Key }) |
+            @Html.ActionLink("Details", "Details", new { id=item.Key }) |
+            @Html.ActionLink("Delete", "Delete", new { id=item.Key })
+        </td>
+        <td>
+			@item.Title
+        </td>
+        <td>
+			@item.Owner
+        </td>
+        <td>
+			@item.Content
+        </td>
+        <td>
+			@item.Priority
+        </td>
+    </tr>
+}
+
+</table>
+
+
