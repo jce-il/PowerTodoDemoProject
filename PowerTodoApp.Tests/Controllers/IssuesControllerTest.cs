@@ -29,5 +29,19 @@ namespace PowerTodoApp.Tests.Controllers
             // Assert
             Assert.AreEqual(issues.OrderBy(issue => issue.Priority).First(), issues.First());
         }
+
+        [TestMethod]
+        public void CreatesGetToChooseFromFacebookFriends()
+        {
+            var mocks = new Mock<IFriendService>();
+            mocks.SetupGet(friendService => friendService.All)
+                .Returns(new[] { new Friend {Name = "Avi"}, new Friend{Name ="Rita" }});
+
+            var controller = new IssuesController(null, mocks.Object);
+            var viewResult = controller.Create() as ViewResult;
+            var friends = viewResult.ViewBag.Friends as IEnumerable<Friend>;
+            Assert.IsTrue(friends.Any());
+            //mocks.VerifyGet<IFriendService>(friendService =>  friendService.All);
+        }
     }
 }

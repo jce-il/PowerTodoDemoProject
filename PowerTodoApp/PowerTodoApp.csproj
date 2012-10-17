@@ -137,6 +137,8 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\AccountModels.cs" />
+    <Compile Include="Models\Friend.cs" />
+    <Compile Include="Models\IFriendService.cs" />
     <Compile Include="Models\Issue.cs" />
     <Compile Include="Models\IssueRepository.cs" />
     <Compile Include="Models\PowerTodoAppContext.cs" />

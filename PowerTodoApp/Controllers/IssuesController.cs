@@ -10,6 +10,7 @@ namespace PowerTodoApp.Controllers
     public class IssuesController : Controller
     {
 		private readonly IIssueRepository issueRepository;
+        private readonly IFriendService friendService;
 
 		// If you are using Dependency Injection, you can delete the following constructor
         public IssuesController() : this(new IssueRepository())
@@ -21,6 +22,13 @@ namespace PowerTodoApp.Controllers
 			this.issueRepository = issueRepository;
         }
 
+        public IssuesController(IIssueRepository issueRepository, IFriendService friendService)
+        {
+            this.issueRepository = issueRepository;
+            this.friendService = friendService;
+        }
+
+ 
         //
         // GET: /Issues/
 
@@ -42,6 +50,9 @@ namespace PowerTodoApp.Controllers
 
         public ActionResult Create()
         {
+            if (friendService != null)
+                ViewBag.Friends = friendService.All;
+ 
             return View();
         } 
 
