@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.Entity;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -11,14 +9,24 @@ namespace PowerTodoApp.Controllers
 {   
     public class IssuesController : Controller
     {
-        private PowerTodoAppContext context = new PowerTodoAppContext();
+		private readonly IIssueRepository issueRepository;
+
+		// If you are using Dependency Injection, you can delete the following constructor
+        public IssuesController() : this(new IssueRepository())
+        {
+        }
+
+        public IssuesController(IIssueRepository issueRepository)
+        {
+			this.issueRepository = issueRepository;
+        }
 
         //
         // GET: /Issues/
 
         public ViewResult Index()
         {
-            return View(context.Issues.ToList());
+            return View(issueRepository.All.OrderBy(issue => issue.Priority));
         }
 
         //
@@ -26,8 +34,7 @@ namespace PowerTodoApp.Controllers
 
         public ViewResult Details(int id)
         {
-            Issue issue = context.Issues.Single(x => x.Key == id);
-            return View(issue);
+            return View(issueRepository.Find(id));
         }
 
         //
@@ -44,14 +51,13 @@ namespace PowerTodoApp.Controllers
         [HttpPost]
         public ActionResult Create(Issue issue)
         {
-            if (ModelState.IsValid)
-            {
-                context.Issues.Add(issue);
-                context.SaveChanges();
-                return RedirectToAction("Index");  
-            }
-
-            return View(issue);
+            if (ModelState.IsValid) {
+                issueRepository.InsertOrUpdate(issue);
+                issueRepository.Save();
+                return RedirectToAction("Index");
+            } else {
+				return View();
+			}
         }
         
         //
@@ -59,8 +65,7 @@ namespace PowerTodoApp.Controllers
  
         public ActionResult Edit(int id)
         {
-            Issue issue = context.Issues.Single(x => x.Key == id);
-            return View(issue);
+             return View(issueRepository.Find(id));
         }
 
         //
@@ -69,13 +74,13 @@ namespace PowerTodoApp.Controllers
         [HttpPost]
         public ActionResult Edit(Issue issue)
         {
-            if (ModelState.IsValid)
-            {
-                context.Entry(issue).State = EntityState.Modified;
-                context.SaveChanges();
+            if (ModelState.IsValid) {
+                issueRepository.InsertOrUpdate(issue);
+                issueRepository.Save();
                 return RedirectToAction("Index");
-            }
-            return View(issue);
+            } else {
+				return View();
+			}
         }
 
         //
@@ -83,8 +88,7 @@ namespace PowerTodoApp.Controllers
  
         public ActionResult Delete(int id)
         {
-            Issue issue = context.Issues.Single(x => x.Key == id);
-            return View(issue);
+            return View(issueRepository.Find(id));
         }
 
         //
@@ -93,18 +97,19 @@ namespace PowerTodoApp.Controllers
         [HttpPost, ActionName("Delete")]
         public ActionResult DeleteConfirmed(int id)
         {
-            Issue issue = context.Issues.Single(x => x.Key == id);
-            context.Issues.Remove(issue);
-            context.SaveChanges();
+            issueRepository.Delete(id);
+            issueRepository.Save();
+
             return RedirectToAction("Index");
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing) {
-                context.Dispose();
+                issueRepository.Dispose();
             }
             base.Dispose(disposing);
         }
     }
 }
+

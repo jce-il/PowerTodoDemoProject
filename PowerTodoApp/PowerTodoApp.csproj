@@ -138,6 +138,7 @@
     </Compile>
     <Compile Include="Models\AccountModels.cs" />
     <Compile Include="Models\Issue.cs" />
+    <Compile Include="Models\IssueRepository.cs" />
     <Compile Include="Models\PowerTodoAppContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
