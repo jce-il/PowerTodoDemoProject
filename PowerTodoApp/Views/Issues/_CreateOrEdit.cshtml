@@ -12,9 +12,10 @@
 
 <div class="editor-label">
     @Html.LabelFor(model => model.Owner)
+
 </div>
 <div class="editor-field">
-    @Html.EditorFor(model => model.Owner)
+    @Html.DropDownListFor(model => model.Owner, new SelectList(ViewBag.Friends)))
     @Html.ValidationMessageFor(model => model.Owner)
 </div>
 

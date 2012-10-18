@@ -13,7 +13,7 @@ namespace PowerTodoApp.Controllers
         private readonly IFriendService friendService;
 
 		// If you are using Dependency Injection, you can delete the following constructor
-        public IssuesController() : this(new IssueRepository())
+        public IssuesController() : this(new IssueRepository(), new FacebookService())
         {
         }
 
@@ -47,11 +47,11 @@ namespace PowerTodoApp.Controllers
 
         //
         // GET: /Issues/Create
-
+        [FacebookAuthorize]
         public ActionResult Create()
         {
             if (friendService != null)
-                ViewBag.Friends = friendService.All;
+                ViewBag.Friends = friendService.All.Select(friend => friend.Name);
  
             return View();
         } 

@@ -9,193 +9,107 @@ using PowerTodoApp.Models;
 namespace PowerTodoApp.Controllers
 {
 
-    [Authorize]
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Web.Mvc;
+    using Facebook;
+
     public class AccountController : Controller
     {
+        // fill from app details at facebo0k
+        private const string AppId = "";
+        private const string Appsecret = "";
+        private const string Scope = "user_about_me,publish_stream,manage_pages";
+        private const string RedirectUri = "http://localhost:3000/Account/FacebookCallback";
 
-        //
-        // GET: /Account/Login
+        private readonly FacebookClient _fb;
 
-        [AllowAnonymous]
+        public AccountController()
+            : this(new FacebookClient())
+        {
+        }
+
+        public AccountController(FacebookClient fb)
+        {
+            _fb = fb;
+        }
+
         public ActionResult Login(string returnUrl)
         {
-            ViewBag.ReturnUrl = returnUrl;
-            return View();
+            var csrfToken = Guid.NewGuid().ToString();
+            Session["fb_csrf_token"] = csrfToken;
+
+            var state = Convert.ToBase64String(Encoding.UTF8.GetBytes(_fb.SerializeJson(new { returnUrl = returnUrl, csrf = csrfToken })));
+
+            var fbLoginUrl = _fb.GetLoginUrl(
+                new
+                {
+                    client_id = AppId,
+                    client_secret = Appsecret,
+                    redirect_uri = RedirectUri,
+                    response_type = "code",
+                    scope = Scope,
+                    state = state
+                });
+
+            return Redirect(fbLoginUrl.AbsoluteUri);
         }
 
-        //
-        // POST: /Account/Login
-
-        [AllowAnonymous]
-        [HttpPost]
-        public ActionResult Login(LoginModel model, string returnUrl)
+        public ActionResult FacebookCallback(string code, string state)
         {
-            if (ModelState.IsValid)
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
+                return RedirectToAction("Index", "Home");
+
+            // first validate the csrf token
+            dynamic decodedState;
+            try
             {
-                if (Membership.ValidateUser(model.UserName, model.Password))
+                decodedState = _fb.DeserializeJson(Encoding.UTF8.GetString(Convert.FromBase64String(state)), null);
+                var exepectedCsrfToken = Session["fb_csrf_token"] as string;
+                // make the fb_csrf_token invalid
+                Session["fb_csrf_token"] = null;
+
+                if (!(decodedState is IDictionary<string, object>) || !decodedState.ContainsKey("csrf") || string.IsNullOrWhiteSpace(exepectedCsrfToken) || exepectedCsrfToken != decodedState.csrf)
                 {
-                    FormsAuthentication.SetAuthCookie(model.UserName, model.RememberMe);
-                    if (Url.IsLocalUrl(returnUrl))
-                    {
-                        return Redirect(returnUrl);
-                    }
-                    else
-                    {
-                        return RedirectToAction("Index", "Home");
-                    }
-                }
-                else
-                {
-                    ModelState.AddModelError("", "The user name or password provided is incorrect.");
-                }
-            }
-
-            // If we got this far, something failed, redisplay form
-            return View(model);
-        }
-
-        //
-        // GET: /Account/LogOff
-
-        public ActionResult LogOff()
-        {
-            FormsAuthentication.SignOut();
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        //
-        // GET: /Account/Register
-
-        [AllowAnonymous]
-        public ActionResult Register()
-        {
-            return View();
-        }
-
-        //
-        // POST: /Account/Register
-
-        [AllowAnonymous]
-        [HttpPost]
-        public ActionResult Register(RegisterModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                // Attempt to register the user
-                MembershipCreateStatus createStatus;
-                Membership.CreateUser(model.UserName, model.Password, model.Email, passwordQuestion: null, passwordAnswer: null, isApproved: true, providerUserKey: null, status: out createStatus);
-
-                if (createStatus == MembershipCreateStatus.Success)
-                {
-                    FormsAuthentication.SetAuthCookie(model.UserName, createPersistentCookie: false);
                     return RedirectToAction("Index", "Home");
                 }
-                else
-                {
-                    ModelState.AddModelError("", ErrorCodeToString(createStatus));
-                }
             }
-
-            // If we got this far, something failed, redisplay form
-            return View(model);
-        }
-
-        //
-        // GET: /Account/ChangePassword
-
-        public ActionResult ChangePassword()
-        {
-            return View();
-        }
-
-        //
-        // POST: /Account/ChangePassword
-
-        [HttpPost]
-        public ActionResult ChangePassword(ChangePasswordModel model)
-        {
-            if (ModelState.IsValid)
+            catch
             {
-
-                // ChangePassword will throw an exception rather
-                // than return false in certain failure scenarios.
-                bool changePasswordSucceeded;
-                try
-                {
-                    MembershipUser currentUser = Membership.GetUser(User.Identity.Name, userIsOnline: true);
-                    changePasswordSucceeded = currentUser.ChangePassword(model.OldPassword, model.NewPassword);
-                }
-                catch (Exception)
-                {
-                    changePasswordSucceeded = false;
-                }
-
-                if (changePasswordSucceeded)
-                {
-                    return RedirectToAction("ChangePasswordSuccess");
-                }
-                else
-                {
-                    ModelState.AddModelError("", "The current password is incorrect or the new password is invalid.");
-                }
+                // log exception
+                return RedirectToAction("Index", "Home");
             }
 
-            // If we got this far, something failed, redisplay form
-            return View(model);
-        }
-
-        //
-        // GET: /Account/ChangePasswordSuccess
-
-        public ActionResult ChangePasswordSuccess()
-        {
-            return View();
-        }
-
-        private IEnumerable<string> GetErrorsFromModelState()
-        {
-            return ModelState.SelectMany(x => x.Value.Errors.Select(error => error.ErrorMessage));
-        }
-
-        #region Status Codes
-        private static string ErrorCodeToString(MembershipCreateStatus createStatus)
-        {
-            // See http://go.microsoft.com/fwlink/?LinkID=177550 for
-            // a full list of status codes.
-            switch (createStatus)
+            try
             {
-                case MembershipCreateStatus.DuplicateUserName:
-                    return "User name already exists. Please enter a different user name.";
+                dynamic result = _fb.Post("oauth/access_token",
+                                          new
+                                          {
+                                              client_id = AppId,
+                                              client_secret = Appsecret,
+                                              redirect_uri = RedirectUri,
+                                              code = code
+                                          });
 
-                case MembershipCreateStatus.DuplicateEmail:
-                    return "A user name for that e-mail address already exists. Please enter a different e-mail address.";
+                Session["fb_access_token"] = result.access_token;
 
-                case MembershipCreateStatus.InvalidPassword:
-                    return "The password provided is invalid. Please enter a valid password value.";
+                if (result.ContainsKey("expires"))
+                    Session["fb_expires_in"] = DateTime.Now.AddSeconds(result.expires);
 
-                case MembershipCreateStatus.InvalidEmail:
-                    return "The e-mail address provided is invalid. Please check the value and try again.";
+                if (decodedState.ContainsKey("returnUrl"))
+                {
+                    if (Url.IsLocalUrl(decodedState.returnUrl))
+                        return Redirect(decodedState.returnUrl);
+                }
 
-                case MembershipCreateStatus.InvalidAnswer:
-                    return "The password retrieval answer provided is invalid. Please check the value and try again.";
-
-                case MembershipCreateStatus.InvalidQuestion:
-                    return "The password retrieval question provided is invalid. Please check the value and try again.";
-
-                case MembershipCreateStatus.InvalidUserName:
-                    return "The user name provided is invalid. Please check the value and try again.";
-
-                case MembershipCreateStatus.ProviderError:
-                    return "The authentication provider returned an error. Please verify your entry and try again. If the problem persists, please contact your system administrator.";
-
-                case MembershipCreateStatus.UserRejected:
-                    return "The user creation request has been canceled. Please verify your entry and try again. If the problem persists, please contact your system administrator.";
-
-                default:
-                    return "An unknown error occurred. Please verify your entry and try again. If the problem persists, please contact your system administrator.";
+                return RedirectToAction("Index", "Home");
+            }
+            catch
+            {
+                // log exception
+                return RedirectToAction("Index", "Home");
             }
         }
-        #endregion
     }
 }
